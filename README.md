@@ -1,6 +1,6 @@
 # High-Scale URL Shortener
 
-LinkSwift is a high-performance, distributed URL shortener built with .NET 8, designed to demonstrate scalability through database sharding, performance caching, and modern architectural patterns.
+high-performance, distributed URL shortener built with .NET 8, designed to demonstrate scalability through database sharding, performance caching, and modern architectural patterns.
 
 ## 🚀 Key Features
 
