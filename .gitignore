@@ -28,6 +28,8 @@ x86/
 *.db
 *.db-shm
 *.db-wal
+.agent/
+.cursor/
 .gemini/
 brain/
 logs/
