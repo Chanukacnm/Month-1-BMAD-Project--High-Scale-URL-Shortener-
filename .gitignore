@@ -28,7 +28,6 @@ x86/
 *.db
 *.db-shm
 *.db-wal
-_bmad-output/
 .gemini/
 brain/
 logs/
