@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  url-shortener-api:
+    image: url-shortener-api
+    build:
+      context: .
+      dockerfile: src/UrlShortener.Api/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres-shard-1;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
+      - ConnectionStrings__Shard1=Host=postgres-shard-1;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
+      - ConnectionStrings__Shard2=Host=postgres-shard-2;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
+      - ConnectionStrings__Redis=redis:6379
+    deploy:
+      replicas: 2
+    depends_on:
+      postgres-shard-1:
+        condition: service_healthy
+      postgres-shard-2:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - url-shortener-api
+
+  postgres-shard-1:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=UrlShortenerDb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=PostgresPassword
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-shard-2:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=UrlShortenerDb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=PostgresPassword
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"

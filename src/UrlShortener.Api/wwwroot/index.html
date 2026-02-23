@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkSwift | High-Scale URL Shortener</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #0f172a;
+            --glass: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        button.primary-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 1.25rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button.primary-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px -10px rgba(99, 102, 241, 0.5);
+        }
+
+        button.primary-btn:active {
+            transform: scale(0.98);
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px dashed rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .short-url {
+            color: #818cf8;
+            font-weight: 600;
+            font-size: 1.1rem;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .recent-list {
+            margin-top: 4rem;
+            width: 100%;
+        }
+
+        .recent-list h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .recent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 16px;
+            margin-bottom: 0.75rem;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .recent-item:hover {
+            border-color: var(--glass-border);
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        .recent-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .original-url {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 100px;
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="status-badge" id="apiStatus">Checking API...</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>LinkSwift</h1>
+            <p>High-Scale URL Shortener with Distributed Sharding</p>
+        </div>
+
+        <div class="glass-card">
+            <div class="input-group">
+                <input type="url" id="originalUrl" placeholder="Paste a long URL here..." required>
+            </div>
+            <button class="primary-btn" id="shortenBtn">
+                <span id="btnText">Shorten URL</span>
+                <div class="loader" id="loader"></div>
+            </button>
+
+            <div class="result-container" id="resultContainer">
+                <div class="result-card">
+                    <span class="short-url" id="shortUrlText"></span>
+                    <button class="copy-btn" id="copyBtn" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-list">
+            <h3>Recent Links</h3>
+            <div id="recentItems">
+                <!-- Recent items will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const shortenBtn = document.getElementById('shortenBtn');
+        const originalUrlInput = document.getElementById('originalUrl');
+        const resultContainer = document.getElementById('resultContainer');
+        const shortUrlText = document.getElementById('shortUrlText');
+        const copyBtn = document.getElementById('copyBtn');
+        const loader = document.getElementById('loader');
+        const btnText = document.getElementById('btnText');
+        const apiStatus = document.getElementById('apiStatus');
+        const recentItemsContainer = document.getElementById('recentItems');
+
+        // Check Health
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    apiStatus.innerText = '● API Online (Standalone)';
+                    apiStatus.style.color = '#4ade80';
+                } else {
+                    apiStatus.innerText = '○ API Offline';
+                    apiStatus.style.color = '#f87171';
+                }
+            } catch (e) {
+                apiStatus.innerText = '○ Connection Error';
+                apiStatus.style.color = '#f87171';
+            }
+        }
+
+        checkHealth();
+        setInterval(checkHealth, 10000);
+
+        // Load Recent Links
+        function loadRecent() {
+            const recent = JSON.parse(localStorage.getItem('recent_links') || '[]');
+            recentItemsContainer.innerHTML = '';
+
+            if (recent.length === 0) {
+                recentItemsContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:0.9rem;">No recent links yet.</p>';
+                return;
+            }
+
+            recent.slice(0, 5).forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'recent-item';
+                div.innerHTML = `
+                    <div class="recent-info">
+                        <span class="short-url" style="font-size:1rem;">${item.shortUrl}</span>
+                        <span class="original-url">${item.originalUrl}</span>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('${item.shortUrl}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                `;
+                recentItemsContainer.appendChild(div);
+            });
+        }
+
+        loadRecent();
+
+        shortenBtn.addEventListener('click', async () => {
+            const originalUrl = originalUrlInput.value;
+            if (!originalUrl) return;
+
+            // Simple validation
+            if (!originalUrl.startsWith('http')) {
+                alert('Please enter a valid URL (starting with http:// or https://)');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/urls`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ originalUrl })
+                });
+
+                if (!response.ok) throw new Error('Failed to shorten URL');
+
+                const data = await response.json();
+                const shortUrl = `${API_BASE}/${data.shortCode}`;
+
+                shortUrlText.innerText = shortUrl;
+                resultContainer.style.display = 'block';
+
+                // Save to recent
+                const recent = JSON.parse(localStorage.getItem('recent_links') || '[]');
+                recent.unshift({ shortUrl, originalUrl, date: new Date().toISOString() });
+                localStorage.setItem('recent_links', JSON.stringify(recent));
+                loadRecent();
+
+                originalUrlInput.value = '';
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                loader.style.display = 'block';
+                btnText.style.display = 'none';
+                shortenBtn.disabled = true;
+            } else {
+                loader.style.display = 'none';
+                btnText.style.display = 'block';
+                shortenBtn.disabled = false;
+            }
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('Copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+            }
+        }
+
+        copyBtn.addEventListener('click', () => copyToClipboard(shortUrlText.innerText));
+    </script>
+</body>
+
+</html>

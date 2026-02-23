@@ -1,0 +1,42 @@
+# .NET Core
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+.vs*
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+*.pfx
+*.publishsettings
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# Project Specific
+*.db
+*.db-shm
+*.db-wal
+_bmad-output/
+.gemini/
+brain/
+logs/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
