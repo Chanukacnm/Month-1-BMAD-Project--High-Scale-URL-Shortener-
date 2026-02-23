@@ -14,7 +14,7 @@ LinkSwift is a high-performance, distributed URL shortener built with .NET 8, de
 
 ## 🛠️ Architecture Deep Dive
 
-LinkSwift follows the **Clean Architecture** pattern, ensuring separation of concerns and high testability.
+follows the **Clean Architecture** pattern, ensuring separation of concerns and high testability.
 
 ### System Components
 
