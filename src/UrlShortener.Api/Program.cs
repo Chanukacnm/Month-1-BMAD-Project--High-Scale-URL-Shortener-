@@ -11,8 +11,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (IsPostgresReachable(defaultConnection))
+    {
+        options.UseNpgsql(defaultConnection);
+    }
+    else
+    {
+        options.UseSqlite("Data Source=urlshortener.db");
+    }
+});
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddScoped<IShortCodeGenerator, ShortCodeGenerator>();
@@ -34,8 +45,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     {
         var options = ConfigurationOptions.Parse(configuration);
         options.AbortOnConnectFail = false;
-        options.ConnectTimeout = 5000;
-        options.SyncTimeout = 5000;
+        options.ConnectTimeout = 1000; // Shorter timeout for standalone detection
+        options.SyncTimeout = 1000;
         return ConnectionMultiplexer.Connect(options);
     }
     catch
@@ -43,6 +54,36 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
         return null!;
     }
 });
+
+static bool IsPostgresReachable(string? connectionString)
+{
+    if (string.IsNullOrEmpty(connectionString)) return false;
+    try
+    {
+        var host = "localhost";
+        var port = 5432;
+        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length != 2) continue;
+            var key = kv[0].Trim().ToLowerInvariant();
+            var value = kv[1].Trim();
+            if (key == "host" || key == "server") host = value;
+            else if (key == "port") int.TryParse(value, out port);
+        }
+        using var client = new System.Net.Sockets.TcpClient();
+        var result = client.BeginConnect(host, port, null, null);
+        var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+        if (success && client.Connected)
+        {
+            client.EndConnect(result);
+            return true;
+        }
+        return false;
+    }
+    catch { return false; }
+}
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateShortUrlCommand).Assembly));
 builder.Services.AddHealthChecks();
