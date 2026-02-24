@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using UrlShortener.Application.Common.Interfaces;
 
 namespace UrlShortener.Infrastructure.Persistence;
@@ -18,8 +20,13 @@ public class ShardRouter : IShardRouter
             return 0;
         }
 
-        // Use absolute value of hash code to stay within bounds
-        var hash = Math.Abs(shortCode.GetHashCode());
+        // Deterministic hash using SHA256 — safe across process restarts and platforms.
+        // string.GetHashCode() is randomized per-process in .NET Core and must NOT be
+        // used for persistent routing decisions.
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(shortCode));
+        // Use bitwise AND to clear sign bit instead of Math.Abs() which throws
+        // OverflowException when BitConverter.ToInt32 returns int.MinValue.
+        var hash = BitConverter.ToInt32(bytes, 0) & 0x7FFFFFFF;
         return hash % _shardCount;
     }
 }

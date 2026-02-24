@@ -28,6 +28,7 @@ x86/
 *.db
 *.db-shm
 *.db-wal
+_bmad/
 .agent/
 .cursor/
 .gemini/
@@ -41,3 +42,12 @@ docker-compose.override.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# k6 load testing
+k6.exe
+k6-results.txt
+k6_last_result.txt
+
+# BMAD backup files
+_bmad-backup/
+*.backup

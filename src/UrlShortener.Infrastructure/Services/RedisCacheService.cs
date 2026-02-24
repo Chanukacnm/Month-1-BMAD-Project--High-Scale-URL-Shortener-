@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using UrlShortener.Application.Common.Interfaces;
 
@@ -7,9 +8,9 @@ public class RedisCacheService : ICacheService
 {
     private readonly IDatabase? _database;
 
-    public RedisCacheService(IConnectionMultiplexer? redis = null)
+    public RedisCacheService(IServiceProvider serviceProvider)
     {
-        _database = redis?.GetDatabase();
+        _database = serviceProvider.GetService<IConnectionMultiplexer>()?.GetDatabase();
     }
 
     public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)

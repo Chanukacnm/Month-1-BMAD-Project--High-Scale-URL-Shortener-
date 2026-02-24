@@ -32,28 +32,27 @@ builder.Services.AddSingleton<IShardRouter, ShardRouter>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+// Redis: Attempt connection eagerly — only register if available (no null! anti-pattern)
+var redisConfig = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrEmpty(redisConfig))
 {
-    var configuration = builder.Configuration.GetConnectionString("Redis");
-    if (string.IsNullOrEmpty(configuration) || configuration == "localhost:6379")
-    {
-        // Standalone/Local: Return null to trigger fallback in RedisCacheService
-        return null!;
-    }
-    
     try
     {
-        var options = ConfigurationOptions.Parse(configuration);
+        var options = ConfigurationOptions.Parse(redisConfig);
         options.AbortOnConnectFail = false;
-        options.ConnectTimeout = 1000; // Shorter timeout for standalone detection
+        options.ConnectTimeout = 2000;
         options.SyncTimeout = 1000;
-        return ConnectionMultiplexer.Connect(options);
+        var multiplexer = ConnectionMultiplexer.Connect(options);
+        if (multiplexer.IsConnected)
+        {
+            builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+        }
     }
     catch
     {
-        return null!;
+        // Redis unavailable — services will gracefully degrade to DB-only mode
     }
-});
+}
 
 static bool IsPostgresReachable(string? connectionString)
 {
@@ -129,29 +128,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
 app.MapControllers();
 app.MapHealthChecks("/health");
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

@@ -3,7 +3,7 @@ using UrlShortener.Domain.Entities;
 
 namespace UrlShortener.Application.Common.Interfaces;
 
-public interface IApplicationDbContext
+public interface IApplicationDbContext : IDisposable
 {
     DbSet<ShortUrl> ShortUrls { get; }
     DbSet<ClickEvent> ClickEvents { get; }

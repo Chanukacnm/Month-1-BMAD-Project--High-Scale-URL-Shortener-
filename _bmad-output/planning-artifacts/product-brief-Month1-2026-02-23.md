@@ -1,7 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3]
 inputDocuments: ['_bmad-output/project-context-url-shortener.md', '_bmad-output/planning-artifacts/product-brief-Month1-2026-02-17.md']
-date: 2026-02-23
+date: 2026-02-24
 author: Chanuka
 ---
 
@@ -9,7 +9,7 @@ author: Chanuka
 
 ## Executive Summary
 
-The project aims to deliver a high-performance URL shortening service designed to handle 10M+ requests per day. The solution focuses on real-world scalability techniques, including horizontal scaling, database sharding (PostgreSQL), and multi-layer caching (Redis). Beyond just a prototype, this service serves as a reference artifact for technical teams learning high-scale system design, integrating seamlessly with the BMAD educational workflow.
+The project delivers a high-performance URL shortening service designed to handle 10M+ requests per day. The solution focuses on real-world scalability techniques, including horizontal scaling, hash-based database sharding (PostgreSQL), multi-layer caching (Redis cache-aside), and realistic k6 load testing. Built with .NET 9 and Clean Architecture (CQRS via MediatR), it serves as a production-grade reference for high-scale system design.
 
 ---
 
@@ -25,17 +25,18 @@ Without a clear, high-scale reference model, engineers may build systems that fa
 
 ### Why Existing Solutions Fall Short
 
-Most existing URL shortener guides provide "toy" implementations that work for small scales but ignore the complexities of horizontal distribution, database bottlenecks, and rigorous load testing (e.g., k6 spikes).
+Most existing URL shortener guides provide "toy" implementations that work for small scales but ignore the complexities of horizontal distribution, database bottlenecks, non-deterministic hashing bugs, and rigorous load testing (e.g., k6 spike scenarios at 200 concurrent users).
 
 ### Proposed Solution
 
-A robust, enterprise-grade URL shortener prototype built with .NET 8, PostgreSQL sharding, and Redis. It includes clear documentation of trade-offs, a sharding strategy for massive traffic, and a repeatable educational workflow to demonstrate scalability at scale.
+A robust, enterprise-grade URL shortener prototype built with .NET 9, PostgreSQL sharding (SHA256 hash-mod routing), and Redis cache-aside caching. It includes clear documentation of trade-offs (CAP theorem, consistency vs. availability), a deterministic sharding strategy, and a repeatable k6 load testing workflow to demonstrate scalability at scale.
 
 ### Key Differentiators
 
-1. **Scalable Sharding + Caching**: A proven strategy for handling millions of requests with low latency.
-2. **Educational Integration**: Designed natively to work as a learning reference within the BMAD ecosystem.
-3. **Realistic Load Profiles**: Validated against 10M+ req/day targets with transparent benchmarks.
+1. **Deterministic Shard Routing**: SHA256-based hash routing prevents data loss across application restarts (a critical bug in naive implementations using `string.GetHashCode()`).
+2. **Graceful Degradation**: Three-tier fallback (Redis → PostgreSQL → SQLite) ensures the system runs anywhere.
+3. **Realistic Load Profiles**: Validated against 200 concurrent VUs with 100% success rate and 201 RPS throughput.
+4. **Educational Integration**: Designed natively to work as a learning reference within the BMAD ecosystem.
 
 ---
 
@@ -43,7 +44,7 @@ A robust, enterprise-grade URL shortener prototype built with .NET 8, PostgreSQL
 
 ### Primary Users
 
-1. **The System Design Learner (e.g., "Alex")**: 
+1. **The System Design Learner (e.g., "Alex")**:
    - **Context**: A mid-level engineer or student preparing for high-level technical roles.
    - **Problem**: Knows the theory of sharding/caching but hasn't seen it work at 10M+ req/day in a real codebase.
    - **Motivation**: To gain practical, hands-on experience with production-grade architecture patterns.
@@ -62,7 +63,7 @@ A robust, enterprise-grade URL shortener prototype built with .NET 8, PostgreSQL
 ## User Journey
 
 1. **Discovery**: A user discovers the project while looking for a "real-world sharding example" in the BMAD ecosystem.
-2. **Onboarding**: They explore the sharding strategy document and the .NET 8 source code.
-3. **Core Usage**: They deploy the multi-container setup (Docker) and run the provided load tests.
-4. **"Aha!" Moment**: Seeing the Redis cache-aside pattern and PostgreSQL hash-sharding handle a simulated 500 RPS spike without breaking.
+2. **Onboarding**: They explore the sharding strategy document and the .NET 9 source code.
+3. **Core Usage**: They deploy the multi-container setup (Docker) or run in standalone mode and execute the provided load tests.
+4. **"Aha!" Moment**: Seeing the Redis cache-aside pattern and PostgreSQL hash-sharding handle a simulated 200 VU spike without a single error.
 5. **Value Realization**: Reusing the architectural patterns or the sharding logic in their own enterprise applications.

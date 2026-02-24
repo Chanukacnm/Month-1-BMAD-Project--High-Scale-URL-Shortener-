@@ -95,7 +95,7 @@ Produces:
 4. Stories
 5. Build & review
 
-**Challenge Statement:** "Build a high-scale URL shortener: 10M+ req/day, .NET 8, PostgreSQL sharding, Redis caching, k6 load tests"
+**Challenge Statement:** "Build a high-scale URL shortener: 10M+ req/day, .NET 9, PostgreSQL sharding, Redis caching, k6 load tests"
 
 ---
 
