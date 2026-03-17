@@ -56,6 +56,20 @@ public class UrlsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpGet("api/preview/{code}")]
+    public async Task<IActionResult> GetPreview(string code)
+    {
+        var query = new GetUrlPreviewQuery(code);
+        var result = await _mediator.Send(query);
+
+        if (result == null)
+        {
+            return NotFound(new { error = "URL not found or preview unavailable." });
+        }
+
+        return Ok(result);
+    }
 }
 
 [ApiController]

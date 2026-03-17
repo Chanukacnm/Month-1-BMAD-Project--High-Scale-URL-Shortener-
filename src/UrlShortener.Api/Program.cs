@@ -6,6 +6,7 @@ using UrlShortener.Application.Urls.Commands;
 using UrlShortener.Infrastructure.Persistence;
 using UrlShortener.Infrastructure.Services;
 using UrlShortener.Api.Middleware;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,8 +30,19 @@ builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequir
 builder.Services.AddScoped<IShortCodeGenerator, ShortCodeGenerator>();
 builder.Services.AddSingleton<IShardConnectionFactory, ShardConnectionFactory>();
 builder.Services.AddSingleton<IShardRouter, ShardRouter>();
+builder.Services.AddSingleton<IGeoShardRouter, GeoShardRouter>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
+builder.Services.AddScoped<IRateLimitService, RedisRateLimitService>();
+builder.Services.AddScoped<IUrlPreviewService, UrlPreviewService>();
+
+// HttpClient for URL Preview with timeout protection
+builder.Services.AddHttpClient("UrlPreview", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.Add("Accept", "text/html");
+    client.MaxResponseContentBufferSize = 1_048_576; // 1 MB
+});
 
 // Redis: Attempt connection eagerly — only register if available (no null! anti-pattern)
 var redisConfig = builder.Configuration.GetConnectionString("Redis");
@@ -89,6 +101,14 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+// Middleware pipeline (order matters):
+// 1. Metrics collection (outermost — captures all request durations)
+app.UseMiddleware<MetricsMiddleware>();
+
+// 2. Rate limiting (before any business logic)
+app.UseMiddleware<RateLimitingMiddleware>();
+
+// 3. Analytics tracking
 app.UseMiddleware<AnalyticsMiddleware>();
 
 // Configure the HTTP request pipeline.
@@ -96,6 +116,9 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
+
+// Prometheus metrics endpoint
+app.UseMetricServer("/metrics");
 
 // Apply migrations on startup
 using (var scope = app.Services.CreateScope())
@@ -132,4 +155,3 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
-

@@ -12,12 +12,21 @@ services:
       - ConnectionStrings__Shard1=Host=postgres-shard-1;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
       - ConnectionStrings__Shard2=Host=postgres-shard-2;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
       - ConnectionStrings__Redis=redis:6379
+      - GeoSharding__DefaultRegion=us
+      - GeoSharding__Regions__us__ShardCount=1
+      - GeoSharding__Regions__us__ConnectionStrings__0=Host=postgres-shard-us-1;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
+      - GeoSharding__Regions__eu__ShardCount=1
+      - GeoSharding__Regions__eu__ConnectionStrings__0=Host=postgres-shard-eu-1;Database=UrlShortenerDb;Username=postgres;Password=PostgresPassword
     deploy:
       replicas: 2
     depends_on:
       postgres-shard-1:
         condition: service_healthy
       postgres-shard-2:
+        condition: service_healthy
+      postgres-shard-us-1:
+        condition: service_healthy
+      postgres-shard-eu-1:
         condition: service_healthy
       redis:
         condition: service_started
@@ -59,7 +68,60 @@ services:
       timeout: 5s
       retries: 5
 
+  # Geographic Shards
+  postgres-shard-us-1:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=UrlShortenerDb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=PostgresPassword
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-shard-eu-1:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=UrlShortenerDb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=PostgresPassword
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - url-shortener-api
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
